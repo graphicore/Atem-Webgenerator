@@ -612,7 +612,7 @@ def fileURLGenerator(target, filename, fromFileMap=False):
     else:
         yield target['endpoint'], {'filename': filename}, result['filePath']
 
-def genericURLGenerator(target):
+def genericURLGenerator(rootpath, target):
     """
         This yields `(endpoint, values)` tuples
 
@@ -639,7 +639,7 @@ def genericURLGenerator(target):
     if 'source' in target:
         # target must define a source for this to happen
         # http://stackoverflow.com/questions/229186/os-walk-without-digging-into-directories-below
-        source = '.' if target['source'] == '' else target['source']
+        source = os.path.join(rootpath, target['source'])
         for root, dirs, files in os.walk(source):
             depth = root.count(os.path.sep) + 1 - source.count(os.path.sep)
             if depth >= maxDepth:
@@ -722,7 +722,7 @@ class Menu(object):
         if targets is None:
             targets = self._targets
         for target in targets:
-            for endpoint, values, filePath in genericURLGenerator(target):
+            for endpoint, values, filePath in genericURLGenerator(self._app.config['rootpath'], target):
                 if includeFilePath:
                     # filePath can be used to get (lazyly fetched and cached)
                     # metadata for the file
@@ -986,12 +986,13 @@ def main(sourcepath, freezedir = None):
         app.run(debug=True)
 
 if __name__ == '__main__':
-    # the last argument sets sourcepath
-    sourcepath = sys.argv[-1] if len(sys.argv) >= 2 else os.getcwd()
+    # the last if 2 args second to last if more than 2 arguments
+    sourcepath = os.path.abspath(sys.argv[max(-2, 1 - len(sys.argv))]) \
+                                    if len(sys.argv) >= 2 else os.getcwd()
     destination = None
-    # If there are 3 args, the second one sets a destination directory and
+    # If there are 3 (or more?) args, the last one sets a destination directory and
     # the website will be generated in there instead of running the development
     # server.
     if len(sys.argv) >= 3:
-        destination = os.path.abspath(sys.argv[1])
+        destination = os.path.abspath(sys.argv[-1])
     main(sourcepath, destination)
