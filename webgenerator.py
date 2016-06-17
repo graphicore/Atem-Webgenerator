@@ -158,7 +158,7 @@ class FileCacheItem(object):
     def __init__(self, path, content, setup):
         self.path = path
         self.content = content
-        self.setup = setup
+        self.setup = setup or {}
         self._times = None
 
     def _getGitDate(self, filename, diffFilter):
@@ -845,12 +845,34 @@ class Menu(object):
         filePath, fileItem = self._getLinkMetaData(*linkdata)
         return fileItem.times[1]
 
+    def _sortWeight(self,linkdata):
+        filePath, fileItem = self._getLinkMetaData(*linkdata)
+        return fileItem.setup.get('weight', 0)
+
     def _getSortKeyFunction(self, sortorder):
-        return ({
+        keyFunks = {
             'name': self._sortName
           , 'ctime': self._sortCTime
           , 'mtime': self._sortMTime
-        })[sortorder]
+          , 'weight': self._sortWeight
+        }
+
+        try:
+            if sortorder in keyFunks:
+                return keyFunks[sortorder]
+        except TypeError:
+            # a list raises: TypeError: unhashable type: 'list'
+            pass
+
+        # use more than one sort criteria
+        functions = []
+        for k in sortorder:
+            functions.append(keyFunks[k])
+        def keyFunk(linkdata):
+            key = tuple([func(linkdata) for func in  functions])
+            print(key)
+            return key
+        return keyFunk
 
     def get(self, endpoints=None, sortorder='default', reverse=False, include_meta=False, endpointName=None):
         # todo: this should be more structured
