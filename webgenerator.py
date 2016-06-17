@@ -869,9 +869,7 @@ class Menu(object):
         for k in sortorder:
             functions.append(keyFunks[k])
         def keyFunk(linkdata):
-            key = tuple([func(linkdata) for func in  functions])
-            print(key)
-            return key
+            return tuple([func(linkdata) for func in  functions])
         return keyFunk
 
     def get(self, endpoints=None, sortorder='default', reverse=False, include_meta=False, endpointName=None):

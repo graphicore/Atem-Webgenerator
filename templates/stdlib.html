@@ -1,7 +1,12 @@
+{% macro rendermenu_link(url, name, active) -%}
+    <li class="{% if active %}active{% endif %}">
+    <a href="{{url}}">{{name}}</a></li>
+{%- endmacro %}
+
 {% macro rendermenu(endpoints=None, sortorder="default", reverse=False, endpointName=None) -%}
 <ul>
-{% for url, name, active in menu.get(endpoints, sortorder=sortorder, reverse=reverse, endpointName=endpointName) %}
-    <li class="{% if active %}active{% endif %}">
-    <a href="{{url}}">{{name}}</a></li>{% endfor %}
+{%- for link in menu.get(endpoints, sortorder=sortorder, reverse=reverse, endpointName=endpointName) -%}
+    {{ rendermenu_link(*link) }}
+    {%- endfor -%}
 </ul>
 {%- endmacro %}
