@@ -179,7 +179,7 @@ class FileCacheItem(object):
         if not timestamp:
             # also if file is not in git at all
             return None
-        datetime.fromtimestamp(float(timestamp))
+        return datetime.fromtimestamp(float(timestamp))
 
     def _getStatDates(self, filename):
         statData = os.stat(filename)
