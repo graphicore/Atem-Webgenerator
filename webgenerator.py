@@ -915,7 +915,8 @@ class Menu(object):
 
 def deepListDir(destination):
     for root, dirs, files in os.walk(destination):
-        for f in files:
+        dirs.sort()
+        for f in sorted(files):
             relpath = os.path.relpath(root, destination)
             yield f if relpath == '.' else os.path.join(relpath, f)
 
