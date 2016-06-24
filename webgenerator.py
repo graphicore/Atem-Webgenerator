@@ -153,7 +153,7 @@ class FileDataCache(object):
                 if default is not _defaultMarker:
                     return default
                 raise KeyError('Can\'t read file at "{0}".'.format(path))
-            f = self._files[path] = FileCacheItem(path, content, setup, self._tz)
+            f = self._files[path] = FileCacheItem(path, content, setup, tz=self._tz)
         return f
 
 class FileCacheItem(object):
@@ -166,9 +166,9 @@ class FileCacheItem(object):
 
     def datefromtimestamp(timestamp):
         # in system time
-        utc = datetime.utcfromtimestamp(float(timestamp))
+        dt = datetime.fromtimestamp(float(timestamp))
         if self._tz is None:
-            return utc
+            return dt
         return dt.astimezone(self._tz)
 
 
@@ -800,7 +800,7 @@ class Menu(object):
     def targets(self):
         return iter(sorted(self._targets, key=lambda target: target.get('endpoint', '')))
 
-    def getAdjacentLinks(self, sortorder='default', reverse=False, include_meta=False):
+    def getAdjacentLinks(self, sortorder=None, reverse=False, include_meta=False):
         previous = current = after = last = None
         found = False
         for link in self.get([request.endpoint], sortorder=sortorder
@@ -884,7 +884,7 @@ class Menu(object):
             return tuple([func(linkdata) for func in  functions])
         return keyFunk
 
-    def get(self, endpoints=None, sortorder='default', reverse=False, include_meta=False, endpointName=None):
+    def get(self, endpoints=None, sortorder=None, reverse=False, include_meta=False, endpointName=None):
         # todo: this should be more structured
         # all links of an endpoint should be yielded subsequently
         # and all links within an endpoint should be sorted (name->alphabet, ctime, mtime)
@@ -900,16 +900,14 @@ class Menu(object):
             links = [(key, viewArgsKey) for viewArgsKey in endpoint.keys()]
 
             # determine how to sort
-            if sortorder == 'default':
+            if sortorder == None:
                 target = self._endpointIndex[key]
                 sortorder = target['config'].get('sortorder', 'name')
                 reverse = target['config'].get('sortreverse', reverse)
 
             # sort
-            if sortorder is not None:
-                links = sorted(links, key=self._getSortKeyFunction(sortorder), reverse=reverse)
-            elif reverse:
-                links = reversed(links)
+            links = sorted(links, key=self._getSortKeyFunction(sortorder), reverse=reverse)
+
 
             for key, viewArgsKey in links:
                 yield self._getLink(key, viewArgsKey, None, include_meta, endpointName=endpointName)

@@ -3,7 +3,7 @@
     <a href="{{url}}">{{name}}</a></li>
 {%- endmacro %}
 
-{% macro rendermenu(endpoints=None, sortorder="default", reverse=False, endpointName=None) -%}
+{% macro rendermenu(endpoints=None, sortorder=None, reverse=False, endpointName=None) -%}
 <ul>
 {%- for link in menu.get(endpoints, sortorder=sortorder, reverse=reverse, endpointName=endpointName) -%}
     {{ rendermenu_link(*link) }}
