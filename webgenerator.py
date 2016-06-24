@@ -2,6 +2,7 @@
 
 from functools import partial, wraps
 from datetime import datetime
+import pytz
 import subprocess
 import os, sys, stat, shutil, tempfile
 from io import StringIO
@@ -140,8 +141,9 @@ def prepareContent(contentType, content, context):
 _defaultMarker = object()
 
 class FileDataCache(object):
-    def __init__(self):
+    def __init__(self, tz=None):
         self._files = {}
+        self._tz = tz
 
     def get(self, path, default=_defaultMarker):
         f = self._files.get(path, None)
@@ -151,15 +153,24 @@ class FileDataCache(object):
                 if default is not _defaultMarker:
                     return default
                 raise KeyError('Can\'t read file at "{0}".'.format(path))
-            f = self._files[path] = FileCacheItem(path, content, setup)
+            f = self._files[path] = FileCacheItem(path, content, setup, self._tz)
         return f
 
 class FileCacheItem(object):
-    def __init__(self, path, content, setup):
+    def __init__(self, path, content, setup, tz = None):
         self.path = path
         self.content = content
         self.setup = setup or {}
         self._times = None
+        self._tz = tz
+
+    def datefromtimestamp(timestamp):
+        # in system time
+        utc = datetime.utcfromtimestamp(float(timestamp))
+        if self._tz is None:
+            return utc
+        return dt.astimezone(self._tz)
+
 
     def _getGitDate(self, filename, diffFilter):
         """
@@ -179,11 +190,11 @@ class FileCacheItem(object):
         if not timestamp:
             # also if file is not in git at all
             return None
-        return datetime.fromtimestamp(float(timestamp))
+        return datetime.fromtimestamp(float(timestamp), self._tz)
 
     def _getStatDates(self, filename):
         statData = os.stat(filename)
-        return tuple([datetime.fromtimestamp(statData[i])
+        return tuple([datetime.fromtimestamp(statData[i], self._tz)
                             for i in (stat.ST_CTIME, stat.ST_MTIME)])
 
     def _getTimes(self):
@@ -579,7 +590,8 @@ def makeApp(rootpath, configFileName='webgenerator.yaml'):
 
     app.config['rootpath'] = rootpath
     targets = buildRoutes(app, config)
-    app.config['fileDataCache'] = FileDataCache()
+    timezone = pytz.timezone(config.get('timezone', 'UTC'))
+    app.config['fileDataCache'] = FileDataCache( tz=timezone )
     menu = Menu(app, targets)
     app.config['menu'] = menu
     app.config['generator_config'] = config
