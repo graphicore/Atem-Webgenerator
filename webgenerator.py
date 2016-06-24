@@ -207,14 +207,15 @@ class FileCacheItem(object):
         If git can't provide an answer(maybe because the file was never
         added to git, or not modified after adding) use os.stat instead.
         """
-
         ctime = self._getGitDate(self.path, 'A')
         if not ctime:
             return self._getStatDates(self.path)
 
+
         mtime = self._getGitDate(self.path, 'M')
         if not mtime:
-            mtime = self._getStatDates(self.path)[1]
+            # use git ctime
+            mtime = ctime
 
         return ctime, mtime
 
