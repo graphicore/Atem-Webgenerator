@@ -28,6 +28,7 @@ from pygments.lexers import get_lexer_by_name
 # but the lexer check is new, better this way around upstream?
 class HighlighterRenderer(markdown.HtmlRenderer):
     def blockcode(self, text, lang):
+        cssclass = 'code-highlighted'
         try:
             lexer = get_lexer_by_name(lang, stripall=True)
         except ClassNotFound:
@@ -37,11 +38,11 @@ class HighlighterRenderer(markdown.HtmlRenderer):
             # Fixme: it would be better to have a single css file created,
             # which is possible! but right now in this early phase that's
             # a distraction
-            formatter = HtmlFormatter(noclasses=True)
+            formatter = HtmlFormatter(noclasses=True, cssclass=cssclass)
             return highlight(text, lexer, formatter)
         # no lexer
-        return '\n<pre><code>{}</code></pre>\n'.format(
-                houdini.escape_html(text.strip()))
+        return '\n<div class="{1}"><pre>{0}</pre></div>\n'.format(
+                houdini.escape_html(text.strip()), cssclass)
 
 
 renderer = HighlighterRenderer()
