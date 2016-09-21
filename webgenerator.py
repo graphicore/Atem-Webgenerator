@@ -656,6 +656,7 @@ def genericURLGenerator(rootpath, target):
         source = os.path.join(rootpath, target['source'])
         for root, dirs, files in os.walk(source):
             depth = root.count(os.path.sep) + 1 - source.count(os.path.sep)
+            subdir = os.path.relpath(root, source)
             if depth >= maxDepth:
                 # This is a the magic piece, it modifies the list that is
                 # used by the os.walk iterator.
@@ -664,8 +665,12 @@ def genericURLGenerator(rootpath, target):
             if depth > maxDepth:
                 continue
             for filename in files:
+                if subdir != '.':
+                    filename = os.path.join(subdir, filename)
                 yield from fileURLGenerator(target, filename)
             for filename in target['config'].get('file_map', {}):
+                if subdir != '.':
+                    filename = os.path.join(subdir, filename)
                 yield from fileURLGenerator(target, filename, fromFileMap=True)
     else:
         # for the fileless_view, we could create more distinct conditions
