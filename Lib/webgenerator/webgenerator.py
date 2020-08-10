@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from functools import partial, wraps
 from datetime import datetime
 import pytz
@@ -10,7 +8,7 @@ from io import StringIO
 from flask import Flask, abort, request, Markup, render_template, url_for \
                 , send_from_directory, render_template_string
 from flask_frozen import Freezer, relative_url_for
-from werkzeug.contrib.atom import AtomFeed
+from .old_werkzeug_contrib_atom import AtomFeed
 from urllib.parse import urljoin
 import jinja2
 import yaml
@@ -598,8 +596,10 @@ def makeApp(rootpath, configFileName='webgenerator.yaml'):
         jinja2_loader = jinja2.ChoiceLoader([
             # first local
             jinja2.FileSystemLoader(os.path.join(rootpath, config['template_folder'])),
+            #resource_listdir('webgenerator', 'templates')
+            jinja2.PackageLoader('webgenerator', package_path='templates', encoding='utf-8'),
             # then the default
-            app.jinja_loader
+            # app.jinja_loader
         ])
         app.jinja_loader = jinja2_loader
 
@@ -1039,19 +1039,3 @@ def main(sourcepath, freezedir = None):
     else:
         app.run(debug=True)
 
-if __name__ == '__main__':
-    setLoglevel(logger, 'DEBUG')
-    # the last if 2 args second to last if more than 2 arguments
-    sourcepath = os.path.abspath(sys.argv[max(-2, 1 - len(sys.argv))]) \
-                                    if len(sys.argv) >= 2 else os.getcwd()
-    destination = None
-    # If there are 3 (or more?) args, the last one sets a destination directory and
-    # the website will be generated in there instead of running the development
-    # server.
-    if len(sys.argv) >= 3:
-        destination = os.path.abspath(sys.argv[-1])
-
-    logger.debug(f'sourcepath: {sourcepath}')
-    logger.debug(f'destination: {destination}')
-
-    main(sourcepath, destination)
