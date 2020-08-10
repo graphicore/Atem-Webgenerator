@@ -15,14 +15,27 @@ from urllib.parse import urljoin
 import jinja2
 import yaml
 
-
-
 import misaka as markdown
 import houdini
 from pygments import highlight
 from pygments.formatters import HtmlFormatter, ClassNotFound
 from pygments.lexers import get_lexer_by_name
 
+import logging
+FORMAT = '%(asctime)s:%(name)s:%(levelname)s:%(message)s'
+logging.basicConfig(format=FORMAT)
+
+def setLoglevel(logger, loglevel):
+  '''
+  loglevel, use: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  '''
+  numeric_level = getattr(logging, loglevel.upper(), None)
+  if not isinstance(numeric_level, int):
+    raise ValueError('Invalid log level: %s' % loglevel)
+  logger.setLevel(numeric_level)
+
+
+logger = logging.getLogger('WEBGENERATOR')
 
 # this is taken straightly from the misaka docs
 # but the lexer check is new, better this way around upstream?
@@ -66,7 +79,7 @@ def extractPageData(data):
         return default
 
     try:
-        parsed = yaml.load(yamlData)
+        parsed = yaml.load(yamlData, Loader=yaml.SafeLoader)
     except yaml.YAMLError as exc:
         return default
 
@@ -335,7 +348,7 @@ def file_view(app, rendererConfig, target, filename):
     # i.e. pageData can set the "template"
     # also, content can be overridden, which may be useful in some fringe cases
     # but usually I think this is not used
-    # This put's a lot of power to the content files, which is intended.
+    # This puts a lot of power to the content files, which is intended.
     # I don't want to update the generator too often for trivial things.
     # Also, keep in mind that I expect the content authors to be aware
     # of their responsibility and not to have malicious intentions (project
@@ -573,7 +586,7 @@ def makeApp(rootpath, configFileName='webgenerator.yaml'):
     # If configFileName is unusable for any reason we want this to fail
     # the point of this method is to bootstrap app from configFile
     with open(os.path.join(rootpath, configFileName), 'r') as configFile:
-        config = yaml.load(configFile)
+        config = yaml.load(configFile, Loader=yaml.SafeLoader)
 
     app = Flask(__name__)
 
@@ -1012,6 +1025,9 @@ def _generate(app, destination):
 def main(sourcepath, freezedir = None):
     app, menu = makeApp(sourcepath)
 
+    # To inject new variables automatically into the context of a template,
+    # context processors exist in Flask.
+    # https://flask.palletsprojects.com/en/1.1.x/templating/#context-processors
     @app.context_processor
     def inject_globals():
         return dict(
@@ -1024,6 +1040,7 @@ def main(sourcepath, freezedir = None):
         app.run(debug=True)
 
 if __name__ == '__main__':
+    setLoglevel(logger, 'DEBUG')
     # the last if 2 args second to last if more than 2 arguments
     sourcepath = os.path.abspath(sys.argv[max(-2, 1 - len(sys.argv))]) \
                                     if len(sys.argv) >= 2 else os.getcwd()
@@ -1033,4 +1050,8 @@ if __name__ == '__main__':
     # server.
     if len(sys.argv) >= 3:
         destination = os.path.abspath(sys.argv[-1])
+
+    logger.debug(f'sourcepath: {sourcepath}')
+    logger.debug(f'destination: {destination}')
+
     main(sourcepath, destination)
