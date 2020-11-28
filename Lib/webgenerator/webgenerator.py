@@ -744,8 +744,18 @@ class Menu(object):
             fileItem = None
         return filePath, fileItem
 
-    def _url_for(self, *args, **kwds):
-        return self._app.jinja_env.globals['url_for'](*args, **kwds)
+    def url_for(self, *args, **kwds):
+        # TODO: it should be configurable which filename is treated as the
+        # index. This is usually configurable by the web server.
+        # index.html is just **very** common for this
+        url = self._app.jinja_env.globals['url_for'](*args, **kwds)
+        index_file = 'index.html'
+        if url.endswith(f'/{index_file}'):
+            url = url[:-len(index_file)]
+        elif url == index_file:
+            # the empty url is the root index
+            url = '/'
+        return url
 
     def isActive(self, endpoint, viewArgs):
         return request.endpoint == endpoint and request.view_args == viewArgs
@@ -851,7 +861,7 @@ class Menu(object):
             raise ValueError('One of viewArgsKey or viewArgs must be set.')
 
         name = self._getLinkName(endpoint, viewArgsKey, endpointName)
-        url = self._url_for(endpoint, **viewArgs)
+        url = self.url_for(endpoint, **viewArgs)
         active = self.isActive(endpoint, viewArgs)
 
         result = [url, name, active]
@@ -1032,7 +1042,10 @@ def main(sourcepath, freezedir = None):
     def inject_globals():
         return dict(
             menu=menu
-          , dir=dir
+            # Patched version may cause problems.
+            # patch is to remove "index.html" from links
+          , url_for=menu.url_for
+          , dir=dir # for debugging ?
         )
     if freezedir:
         generate(app, freezedir)
