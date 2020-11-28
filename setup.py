@@ -18,7 +18,7 @@ setup(
     packages=['webgenerator'],
     package_data={
                   'webgenerator': [
-                      'templates',
+                      'templates/*',
                   ]
                  },
     entry_points={
