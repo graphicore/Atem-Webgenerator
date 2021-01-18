@@ -5,7 +5,7 @@
 
 {% macro rendermenu(endpoints=None, sortorder=None, reverse=False, endpointName=None) -%}
 <ul>
-{%- for link in menu.get(endpoints, sortorder=sortorder, reverse=reverse, endpointName=endpointName) -%}
+{%- for link in __menu__.get(endpoints, sortorder=sortorder, reverse=reverse, endpointName=endpointName) -%}
     {{ rendermenu_link(*link) }}
     {%- endfor -%}
 </ul>

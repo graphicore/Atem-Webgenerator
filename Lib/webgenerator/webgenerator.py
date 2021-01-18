@@ -168,6 +168,7 @@ class FileDataCache(object):
             f = self._files[path] = FileCacheItem(path, content, setup, tz=self._tz)
         return f
 
+
 class FileCacheItem(object):
     def __init__(self, path, content, setup, tz = None):
         self.path = path
@@ -607,6 +608,7 @@ def makeApp(rootpath, configFileName='webgenerator.yaml'):
     targets = buildRoutes(app, config)
     timezone = pytz.timezone(config.get('timezone', 'UTC'))
     app.config['fileDataCache'] = FileDataCache( tz=timezone )
+    app.config['now'] = datetime.now( tz=timezone )
     menu = Menu(app, targets)
     app.config['menu'] = menu
     app.config['generator_config'] = config
@@ -733,7 +735,7 @@ class Menu(object):
             if default is not _defaultMarker:
                 return default
             raise KeyError('No endpoint "{0}"'.format(endpoint))
-        if viewArgsKey not in self._index[endpoint]:
+        if  viewArgsKey not in self._index[endpoint]:
             if default is not _defaultMarker:
                 return default
             raise KeyError('No entry in endpoint "{0}" for key "{1}"'.format(endpoint, viewArgsKey))
@@ -744,10 +746,11 @@ class Menu(object):
             fileItem = None
         return filePath, fileItem
 
-    def url_for(self, *args, **kwds):
+    def url_for(self, *args, absolute_url=False, **kwds):
         # TODO: it should be configurable which filename is treated as the
         # index. This is usually configurable by the web server.
         # index.html is just **very** common for this
+
         url = self._app.jinja_env.globals['url_for'](*args, **kwds)
         index_file = 'index.html'
         if url.endswith(f'/{index_file}'):
@@ -755,6 +758,11 @@ class Menu(object):
         elif url == index_file:
             # the empty url is the root index
             url = '/'
+        if absolute_url:
+            url_root = self._app.config['generator_config'] \
+                        .get('freezer_config', {}) \
+                        .get('url_root', request.url_root)
+            url = urljoin(url_root, url)
         return url
 
     def isActive(self, endpoint, viewArgs):
@@ -802,9 +810,11 @@ class Menu(object):
         return target['config'].get('link_name', '/' if endpoint == '__root__' else endpointName)
 
 
-    def getLink(self, endpoint, include_meta=False, default=_defaultMarker, endpointName=None, **viewArgs):
+    def getLink(self, endpoint, include_meta=False, default=_defaultMarker,
+                endpointName=None, absolute_url=False, **viewArgs):
         try:
-            return self._getLink(endpoint, None, viewArgs, include_meta, endpointName=endpointName)
+            return self._getLink(endpoint, None, viewArgs, include_meta,
+                        endpointName=endpointName, absolute_url=absolute_url)
         except KeyError as e:
             if default is not _defaultMarker: return default
             raise e
@@ -830,11 +840,12 @@ class Menu(object):
     def targets(self):
         return iter(sorted(self._targets, key=lambda target: target.get('endpoint', '')))
 
-    def getAdjacentLinks(self, sortorder=None, reverse=False, include_meta=False):
+    def getAdjacentLinks(self, sortorder=None, reverse=False, include_meta=False, absolute_url=False):
         previous = current = after = last = None
         found = False
         for link in self.get([request.endpoint], sortorder=sortorder
-                                , reverse=reverse, include_meta=True):
+                                , reverse=reverse, absolute_url=absolute_url
+                                , include_meta=True):
             meta = link[3]
             if found :
                 after = link
@@ -851,7 +862,8 @@ class Menu(object):
             if after: after = tuple(after[:-1])
         return previous, current, after
 
-    def _getLink(self, endpoint, viewArgsKey, viewArgs, include_meta, endpointName=None):
+    def _getLink(self, endpoint, viewArgsKey, viewArgs, include_meta,
+                 absolute_url=False, endpointName=None):
         if viewArgsKey is not None:
             # if both are not None, viewArgsKey wins
             viewArgs = dict(viewArgsKey)
@@ -861,7 +873,7 @@ class Menu(object):
             raise ValueError('One of viewArgsKey or viewArgs must be set.')
 
         name = self._getLinkName(endpoint, viewArgsKey, endpointName)
-        url = self.url_for(endpoint, **viewArgs)
+        url = self.url_for(endpoint, absolute_url=absolute_url, **viewArgs)
         active = self.isActive(endpoint, viewArgs)
 
         result = [url, name, active]
@@ -914,7 +926,8 @@ class Menu(object):
             return tuple([func(linkdata) for func in  functions])
         return keyFunk
 
-    def get(self, endpoints=None, sortorder=None, reverse=False, include_meta=False, endpointName=None):
+    def get(self, endpoints=None, sortorder=None, reverse=False,
+            include_meta=False, endpointName=None, absolute_url=False, **viewArgs):
         # todo: this should be more structured
         # all links of an endpoint should be yielded subsequently
         # and all links within an endpoint should be sorted (name->alphabet, ctime, mtime)
@@ -930,17 +943,18 @@ class Menu(object):
             links = [(key, viewArgsKey) for viewArgsKey in endpoint.keys()]
 
             # determine how to sort
-            if sortorder == None:
+            if sortorder is None:
                 target = self._endpointIndex[key]
                 sortorder = target['config'].get('sortorder', 'name')
                 reverse = target['config'].get('sortreverse', reverse)
 
             # sort
-            links = sorted(links, key=self._getSortKeyFunction(sortorder), reverse=reverse)
-
+            links = sorted(links, key=self._getSortKeyFunction(sortorder),
+                           reverse=reverse)
 
             for key, viewArgsKey in links:
-                yield self._getLink(key, viewArgsKey, None, include_meta, endpointName=endpointName)
+                yield self._getLink(key, viewArgsKey, viewArgs, include_meta,
+                            endpointName=endpointName, absolute_url=absolute_url)
 
 def deepListDir(destination):
     for root, dirs, files in os.walk(destination):
@@ -1041,14 +1055,14 @@ def main(sourcepath, freezedir = None):
     @app.context_processor
     def inject_globals():
         return dict(
-            menu=menu
+            __menu__=menu
             # Patched version may cause problems.
             # patch is to remove "index.html" from links
           , url_for=menu.url_for
+          , __now__=app.config['now']
           , dir=dir # for debugging ?
         )
     if freezedir:
         generate(app, freezedir)
     else:
         app.run(debug=True)
-
