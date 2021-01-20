@@ -1006,7 +1006,7 @@ def cleanDestination(destination, manifestFile):
             if dirname in deleted:
                 break
             try:
-                os.rmdir(os.path.joun(destination, dirname))
+                os.rmdir(os.path.join(destination, dirname))
                 deleted.add(dirname)
             except OSError:
                 pass
