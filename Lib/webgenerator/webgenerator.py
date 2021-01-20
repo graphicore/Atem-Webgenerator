@@ -93,7 +93,7 @@ def makePath(*pathparts):
 
 def readSourceFile(path):
     try:
-        with open(path) as f:
+        with open(path, encoding='utf-8') as f:
             data = f.read()
     except FileNotFoundError:
         return False, None, None
@@ -584,7 +584,7 @@ def buildRoutes(app, config, parent=None):
 def makeApp(rootpath, configFileName='webgenerator.yaml'):
     # If configFileName is unusable for any reason we want this to fail
     # the point of this method is to bootstrap app from configFile
-    with open(os.path.join(rootpath, configFileName), 'r') as configFile:
+    with open(os.path.join(rootpath, configFileName), 'r', encoding='utf-8') as configFile:
         config = yaml.load(configFile, Loader=yaml.SafeLoader)
 
     app = Flask(__name__)
@@ -967,7 +967,7 @@ def makeFilesManifest(destination, fileName):
     out = StringIO()
     for f in deepListDir(destination):
         print(f, file=out)
-    with open(os.path.join(destination, fileName), 'w') as f:
+    with open(os.path.join(destination, fileName), 'w', encoding='utf-8') as f:
         f.write(out.getvalue())
     out.close()
 
@@ -979,7 +979,7 @@ def cleanDestination(destination, manifestFile):
         return
     directories = set()
 
-    with open(manifestPath, 'r') as manifest:
+    with open(manifestPath, 'r', encoding='utf-8') as manifest:
         for f in manifest:
             # If manifestFile was edited paths in it could be
             # outside of the destination dir.
@@ -1012,6 +1012,7 @@ def cleanDestination(destination, manifestFile):
             except OSError:
                 pass
             dirname = os.path.dirname(dirname)
+    os.close(fd_dir)
 
 def generate(app, destination, manifestFile = '.webgenerator.manifest'):
     tempdir = tempfile.mkdtemp()
