@@ -1022,6 +1022,12 @@ def generate(app, destination, manifestFile = '.webgenerator.manifest'):
         makeFilesManifest(tempdir, manifestFile)
         cleanDestination(destination, manifestFile)
 
+        for root, dirs, files in os.walk(destination, topdown=False):
+            for f in files + dirs:
+                filename = os.path.join(root, f)
+                if not os.access(filename, os.W_OK):
+                    os.chmod(filename, 0o0777)
+
         for f in deepListDir(tempdir):
             targetFile = os.path.join(destination, f)
             oldmask = os.umask(000)
