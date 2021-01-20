@@ -1021,9 +1021,12 @@ def generate(app, destination, manifestFile = '.webgenerator.manifest'):
         # we use this to clean up older versions of the generated page
         makeFilesManifest(tempdir, manifestFile)
         cleanDestination(destination, manifestFile)
+
         for f in deepListDir(tempdir):
             targetFile = os.path.join(destination, f)
+            oldmask = os.umask(000)
             os.makedirs(os.path.dirname(targetFile), exist_ok=True)
+            os.umask(oldmask)
             shutil.copy2(os.path.join(tempdir, f), targetFile)
     finally:
         shutil.rmtree(tempdir)
