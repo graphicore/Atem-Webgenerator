@@ -998,7 +998,6 @@ def cleanDestination(destination, manifestFile):
                 pass
 
     os.remove(manifestPath)
-    fd_dir = os.open(destination, os.O_RDONLY)
     # try to remove the directories that we have touched
     # deletes only empty dirs
     deleted = set()
@@ -1007,12 +1006,11 @@ def cleanDestination(destination, manifestFile):
             if dirname in deleted:
                 break
             try:
-                os.rmdir(dirname, dir_fd=fd_dir)
+                os.rmdir(os.path.joun(destination, dirname))
                 deleted.add(dirname)
             except OSError:
                 pass
             dirname = os.path.dirname(dirname)
-    os.close(fd_dir)
 
 def generate(app, destination, manifestFile = '.webgenerator.manifest'):
     tempdir = tempfile.mkdtemp()
