@@ -93,7 +93,7 @@ def makePath(*pathparts):
 
 def readSourceFile(path):
     try:
-        with open(path, encoding='utf-8') as f:
+        with open(path, encoding='utf-8-sig') as f:
             data = f.read()
     except FileNotFoundError:
         return False, None, None
@@ -584,7 +584,7 @@ def buildRoutes(app, config, parent=None):
 def makeApp(rootpath, configFileName='webgenerator.yaml'):
     # If configFileName is unusable for any reason we want this to fail
     # the point of this method is to bootstrap app from configFile
-    with open(os.path.join(rootpath, configFileName), 'r', encoding='utf-8') as configFile:
+    with open(os.path.join(rootpath, configFileName), 'r', encoding='utf-8-sig') as configFile:
         config = yaml.load(configFile, Loader=yaml.SafeLoader)
 
     app = Flask(__name__)
@@ -598,7 +598,7 @@ def makeApp(rootpath, configFileName='webgenerator.yaml'):
             # first local
             jinja2.FileSystemLoader(os.path.join(rootpath, config['template_folder'])),
             #resource_listdir('webgenerator', 'templates')
-            jinja2.PackageLoader('webgenerator', package_path='templates', encoding='utf-8'),
+            jinja2.PackageLoader('webgenerator', package_path='templates', encoding='utf-8-sig'),
             # then the default
             # app.jinja_loader
         ])
@@ -967,7 +967,7 @@ def makeFilesManifest(destination, fileName):
     out = StringIO()
     for f in deepListDir(destination):
         print(f, file=out)
-    with open(os.path.join(destination, fileName), 'w', encoding='utf-8') as f:
+    with open(os.path.join(destination, fileName), 'w', encoding='utf-8-sig') as f:
         f.write(out.getvalue())
     out.close()
 
@@ -979,7 +979,7 @@ def cleanDestination(destination, manifestFile):
         return
     directories = set()
 
-    with open(manifestPath, 'r', encoding='utf-8') as manifest:
+    with open(manifestPath, 'r', encoding='utf-8-sig') as manifest:
         for f in manifest:
             # If manifestFile was edited paths in it could be
             # outside of the destination dir.
@@ -1018,14 +1018,7 @@ def generate(app, destination, manifestFile = '.webgenerator.manifest'):
         _generate(app, tempdir)
         # we use this to clean up older versions of the generated page
         makeFilesManifest(tempdir, manifestFile)
-
-        for root, dirs, files in os.walk(destination, topdown=False):
-            for f in files + dirs:
-                filename = os.path.join(root, f)
-                os.chmod(filename, 0o0777)
-
         cleanDestination(destination, manifestFile)
-
         for f in deepListDir(tempdir):
             targetFile = os.path.join(destination, f)
             oldmask = os.umask(000)
