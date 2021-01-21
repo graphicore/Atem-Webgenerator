@@ -190,16 +190,21 @@ class FileCacheItem(object):
             diff-filter=A === added date
             diff-filter=M === modified date
         """
-        p = subprocess.Popen(['git', 'log' , '--diff-filter={0}'.format(diffFilter)
-                            , '--follow', '--format=%at', '-1', '--', filename]
-                            , stdout=subprocess.PIPE
-                            # Ask the git repository that contains
-                            # the file, if any.
-                            , cwd=os.path.dirname(filename)
-                            )
-        out, err = p.communicate()
-        # out = b'1464452704\n' OR b''
-        timestamp = out.strip()
+        timestamp = None
+        try:
+            p = subprocess.Popen(['git', 'log' , '--diff-filter={0}'.format(diffFilter)
+                                , '--follow', '--format=%at', '-1', '--', filename]
+                                , stdout=subprocess.PIPE
+                                # Ask the git repository that contains
+                                # the file, if any.
+                                , cwd=os.path.dirname(filename)
+                                )
+            out, err = p.communicate()
+            # out = b'1464452704\n' OR b''
+            timestamp = out.strip()
+        except Exception as e:
+            logger.warning(f'Error in _getGitDate calling `git log`: {e}.')
+
         if not timestamp:
             # also if file is not in git at all
             return None
