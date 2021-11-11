@@ -24,8 +24,6 @@
 import warnings
 from datetime import datetime
 
-from werkzeug._compat import implements_to_string
-from werkzeug._compat import string_types
 from werkzeug.utils import escape
 from werkzeug.wrappers import BaseResponse
 
@@ -61,7 +59,6 @@ def format_iso8601(obj):
     return iso8601 + "Z"
 
 
-@implements_to_string
 class AtomFeed(object):
 
     """A helper class that creates Atom feeds.
@@ -134,7 +131,7 @@ class AtomFeed(object):
         self.entries = list(entries) if entries else []
 
         if not hasattr(self.author, "__iter__") or isinstance(
-            self.author, string_types + (dict,)
+            self.author, (str, dict)
         ):
             self.author = [self.author]
         for i, author in enumerate(self.author):
@@ -237,7 +234,6 @@ class AtomFeed(object):
         return self.to_string()
 
 
-@implements_to_string
 class FeedEntry(object):
 
     """Represents a single entry in a feed.
@@ -302,7 +298,7 @@ class FeedEntry(object):
         self.xml_base = kwargs.get("xml_base", feed_url)
 
         if not hasattr(self.author, "__iter__") or isinstance(
-            self.author, string_types + (dict,)
+            self.author, (str, dict)
         ):
             self.author = [self.author]
         for i, author in enumerate(self.author):
