@@ -7,6 +7,7 @@ from io import StringIO
 
 from flask import Flask, abort, request, Markup, render_template, url_for \
                 , send_from_directory, render_template_string
+from werkzeug.wrappers import BaseResponse
 from flask_frozen import Freezer, relative_url_for
 from .old_werkzeug_contrib_atom import AtomFeed
 from urllib.parse import urljoin
@@ -332,7 +333,13 @@ def templatedRenderer(app, config, fileData):
 
 def fileless_view(config):
     template = config.get('template', 'standard.html')
-    return render_template(template, **config)
+    result = render_template(template, **config)
+    mimetype = 'text/html' # flask default
+    if 'mimetype' in config:
+        mimetype = config['mimetype']
+    elif template.endswith('.xml'):
+        mimetype="text/xml"
+    return BaseResponse(result, mimetype=mimetype)
 
 def file_view(app, rendererConfig, target, filename):
     # nice, filename is indeed something like path/to/file.md
