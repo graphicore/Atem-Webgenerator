@@ -758,18 +758,19 @@ class Menu(object):
             fileItem = None
         return filePath, fileItem
 
-    def url_for(self, *args, absolute_url=False, **kwds):
+    def url_for(self, *args, absolute_url=False, add_index=False, **kwds):
         # TODO: it should be configurable which filename is treated as the
         # index. This is usually configurable by the web server.
         # index.html is just **very** common for this
 
         url = self._app.jinja_env.globals['url_for'](*args, **kwds)
         index_file = 'index.html'
-        if url.endswith(f'/{index_file}'):
-            url = url[:-len(index_file)]
-        elif url == index_file:
-            # the empty url is the root index
-            url = '/'
+        if not add_index:
+            if url.endswith(f'/{index_file}'):
+                url = url[:-len(index_file)]
+            elif url == index_file:
+                # the empty url is the root index
+                url = '/'
         if absolute_url:
             url_root = self._app.config['generator_config'] \
                         .get('freezer_config', {}) \
@@ -823,10 +824,11 @@ class Menu(object):
 
 
     def getLink(self, endpoint, include_meta=False, default=_defaultMarker,
-                endpointName=None, absolute_url=False, **viewArgs):
+                endpointName=None, absolute_url=False, add_index=False,**viewArgs):
         try:
             return self._getLink(endpoint, None, viewArgs, include_meta,
-                        endpointName=endpointName, absolute_url=absolute_url)
+                        endpointName=endpointName, absolute_url=absolute_url,
+                        add_index=add_index)
         except KeyError as e:
             if default is not _defaultMarker: return default
             raise e
@@ -875,7 +877,7 @@ class Menu(object):
         return previous, current, after
 
     def _getLink(self, endpoint, viewArgsKey, viewArgs, include_meta,
-                 absolute_url=False, endpointName=None):
+                 absolute_url=False, add_index=False, endpointName=None):
         if viewArgsKey is not None:
             # if both are not None, viewArgsKey wins
             viewArgs = dict(viewArgsKey)
@@ -885,7 +887,7 @@ class Menu(object):
             raise ValueError('One of viewArgsKey or viewArgs must be set.')
 
         name = self._getLinkName(endpoint, viewArgsKey, endpointName)
-        url = self.url_for(endpoint, absolute_url=absolute_url, **viewArgs)
+        url = self.url_for(endpoint, absolute_url=absolute_url, add_index=add_index, **viewArgs)
         active = self.isActive(endpoint, viewArgs)
 
         result = [url, name, active]
